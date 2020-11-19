@@ -38,7 +38,7 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
-
+	
 	"github.com/pkg/errors"
 )
 
@@ -47,10 +47,10 @@ type Client struct {
 	endpoint         string
 	httpClient       *http.Client
 	useMultipartForm bool
-
+	
 	// closeReq will close the request body immediately allowing for reuse of client
 	closeReq bool
-
+	
 	// Log is called with various debug information.
 	// To log to standard out, use:
 	//  client.Log = func(s string) { log.Println(s) }
@@ -137,10 +137,12 @@ func (c *Client) runWithJSON(ctx context.Context, req *Request, resp interface{}
 		return errors.Wrap(err, "reading body")
 	}
 	c.logf("<< %s", buf.String())
+	
+	if res.StatusCode != http.StatusOK {
+		return fmt.Errorf("graphql: server returned a non-200 status code: %v", res.StatusCode)
+	}
+	
 	if err := json.NewDecoder(&buf).Decode(&gr); err != nil {
-		if res.StatusCode != http.StatusOK {
-			return fmt.Errorf("graphql: server returned a non-200 status code: %v", res.StatusCode)
-		}
 		return errors.Wrap(err, "decoding response")
 	}
 	if len(gr.Errors) > 0 {
@@ -238,7 +240,7 @@ func UseMultipartForm() ClientOption {
 	}
 }
 
-//ImmediatelyCloseReqBody will close the req body immediately after each request body is ready
+// ImmediatelyCloseReqBody will close the req body immediately after each request body is ready
 func ImmediatelyCloseReqBody() ClientOption {
 	return func(client *Client) {
 		client.closeReq = true
@@ -267,7 +269,7 @@ type Request struct {
 	q     string
 	vars  map[string]interface{}
 	files []File
-
+	
 	// Header represent any request headers that will be set
 	// when the request is made.
 	Header http.Header
